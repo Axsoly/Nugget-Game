@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Nugget Catcher</title>
+</head>
+<body>
+    <div id="ui-layer">
+        <div class="stat-box">
+            <span class="label">SCORE</span>
+            <span id="score">0</span>
+        </div>
+        <div class="stat-box">
+            <span class="label">LIVES</span>
+            <span id="lives">❤️❤️❤️</span>
+        </div>
+    </div>
+
+    <div id="game-over">
+        <h1>GAME OVER</h1>
+        <p id="final-score"></p>
+        <button onclick="location.reload()">RESTART</button>
+    </div>
+
+    <div id="player"></div>
+
+    <script>
+        const player = document.getElementById('player');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('lives');
+        const gameOverScreen = document.getElementById('game-over');
+        
+        let score = 0;
+        let lives = 3;
+        let gameActive = true;
+
+        document.addEventListener('mousemove', (e) => {
+            if(!gameActive) return;
+            player.style.left = (e.clientX - 60) + 'px'; 
+        });
+
+        function spawnItem() {
+            if (!gameActive) return;
+
+            const isBomb = Math.random() < 0.2;
+            const item = document.createElement('div');
+            item.classList.add(isBomb ? 'bomb' : 'nugget');
+            
+            // Adjust spawn range so large bombs don't clip off screen edge
+            const margin = isBomb ? 80 : 60;
+            item.style.left = Math.random() * (window.innerWidth - margin) + 'px';
+            document.body.appendChild(item);
+
+            let top = -100;
+            let speed = 6 + (score / 12);
+
+            const fallInterval = setInterval(() => {
+                if (!gameActive) {
+                    item.remove();
+                    clearInterval(fallInterval);
+                    return;
+                }
+
+                top += speed;
+                item.style.top = top + 'px';
+
+                const pRect = player.getBoundingClientRect();
+                const iRect = item.getBoundingClientRect();
+
+                // Standard collision logic
+                if (iRect.bottom >= pRect.top + 20 && iRect.top <= pRect.bottom &&
+                    iRect.left < pRect.right - 5 && iRect.right > pRect.left + 5) {
+                    
+                    if (isBomb) {
+                        lives--;
+                        livesElement.innerText = "❤️".repeat(lives);
+                        if (lives <= 0) endGame();
+                    } else {
+                        score++;
+                        scoreElement.innerText = score;
+                    }
+                    
+                    item.remove();
+                    clearInterval(fallInterval);
+                }
+
+                if (top > window.innerHeight) {
+                    item.remove();
+                    clearInterval(fallInterval);
+                }
+            }, 16);
+        }
+
+        function endGame() {
+            gameActive = false;
+            document.getElementById('final-score').innerText = `TOTAL NUGGETS: ${score}`;
+            gameOverScreen.style.display = 'block';
+            player.style.display = 'none';
+        }
+
+        const gameLoop = () => {
+            spawnItem();
+            if(gameActive) {
+                setTimeout(gameLoop, Math.max(200, 750 - (score * 5)));
+            }
+        };
+        gameLoop();
+    </script>
+</body>
+</html>
